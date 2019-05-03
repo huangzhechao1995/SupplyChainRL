@@ -19,7 +19,7 @@ class NewsVendorGame:
         Kpr:    float,          unit product cost parameter
         Kst:    array of float, storage cost parameter
         Kpe:    float,          penalty cost parameter
-        Ktr:    array of float, transportation coast parameter
+        Ktr:    array of float, transportation cost parameter
         CWarehouse:    array of float, storage capacity 
         CTruck: array of float  , truck capacity, length is K+1, with the first being np.nan
         Price:  float, price of one unit of product
@@ -32,17 +32,22 @@ class NewsVendorGame:
         self.Ktr=Ktr 
         self.CWarehouse=CWarehouse
         self.CTruck=CTruck
+        self.Price=Price
+        self.dmax= dmax
+        
+        assert len(self.CWarehouse)==self.K+1, "warehouse capacity, length is K+1"
         assert len(self.CTruck)==self.K+1, "truck capacity, length is K+1"
         self.CTruck[0]=np.nan
-        self.Price=Price
         
         
+        self.t=0  #timestamp
         self.stock=np.zeros(K+1) 
         self.old_d=np.zeros(K+1) #d(t-1), but d[0] is always NA
         self.old_d[0]=np.nan
         self.d=np.zeros(K+1) #d(t)
         self.d[0]=np.nan
-        self.t=0  #timestamp
+        #self.state=(self.stock, self.old_d, self.d)
+        
         
     def reward(self, demand, assignment):
         """
@@ -61,15 +66,21 @@ class NewsVendorGame:
     def show(self):
         
     
-    def 
+    def human_interactions(self):
+        print('current ')
 
 
 if __name__=='main':
     
     K=2
-    Kpr=8
-    Kst=
+    Kpr=5
+    Kst=np.array([np.nan,1,3]).reshape(K+1)
     Kpe=5
+    Ktr=2
+    CWarehouse=CWarehouse
+    CTruck=5
+    Price=8
+    dmax= 10
     
     
     
