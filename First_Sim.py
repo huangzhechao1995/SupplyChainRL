@@ -14,7 +14,7 @@ def reward(stock, demand, assignment):
     np.sum(np.maximum(stock,0)) + 
     Kpe*np.sum(np.minimum(stock[1:],0)) - 
     np.sum(Ktr[1:]* np.ceil(assignment[1:]/self.CTruck)))
-    return 
+    return r
 
 
 
