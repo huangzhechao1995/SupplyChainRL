@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May  2 19:23:37 2019
+
+@author: zhechuang
+"""
+
+#"numGoodSaled"
+
+import numpy as np
+import pandas as pd
+
+class NewsVendorGame:
+    
+    def __init__(K, Kpr, Kst, Kpe, Ktr, CWarehouse, CTruck, Price, dmax):
+        """
+        K:      int, number of warehouses
+        Kpr:    float,          unit product cost parameter
+        Kst:    array of float, storage cost parameter
+        Kpe:    float,          penalty cost parameter
+        Ktr:    array of float, transportation coast parameter
+        CWarehouse:    array of float, storage capacity 
+        CTruck: array of float  , truck capacity, length is K+1, with the first being np.nan
+        Price:  float, price of one unit of product
+        dmax:   float, max demand
+        """
+        self.K=K
+        self.Kpr=Kpr
+        self.Kst=Kst
+        self.Kpe=Kpe
+        self.Ktr=Ktr 
+        self.CWarehouse=CWarehouse
+        self.CTruck=CTruck
+        assert len(self.CTruck)==self.K+1, "truck capacity, length is K+1"
+        self.CTruck[0]=np.nan
+        self.Price=Price
+        
+        
+        self.stock=np.zeros(K+1) 
+        self.old_d=np.zeros(K+1) #d(t-1), but d[0] is always NA
+        self.old_d[0]=np.nan
+        self.d=np.zeros(K+1) #d(t)
+        self.d[0]=np.nan
+        self.t=0  #timestamp
+        
+    def reward(self, demand, assignment):
+        """
+        calculate the reward
+        demand:  demand of current time t
+        assignment: assignment of current time t
+        """
+        
+    def demand_func(self):
+        j = np.array(range(0,self.K))
+        demand = self.dmax/2 * np.sin(2*np.pi*(self.t + 2 * j)/12) + self.dmax/2 + np.random.choice([0,1])
+        demand[0] = np.nan
+        return demand
+
+    
+    def show(self):
+        
+    
+    def 
+
+
+if __name__=='main':
+    
+    K=2
+    Kpr=8
+    Kst=
+    Kpe=5
+    
+    
+    
+    game=NewsVendorGame()
+    
+    
