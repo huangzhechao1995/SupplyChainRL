@@ -8,6 +8,7 @@ import framework
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 """Linear QL agent"""
 
 
@@ -21,6 +22,7 @@ NUM_EPOCHS = 1200
 NUM_EPIS_TRAIN = 25  # number of episodes for training at each epoch
 NUM_EPIS_TEST = 50  # number of episodes for testing
 ALPHA = 0.000001  # learning rate for training
+BIGM=1e4
 
 K = 2
 Kpr = 5
@@ -31,8 +33,8 @@ CWarehouse = np.array([20, 20, 20]).reshape(K+1)
 CTruck = np.array([np.nan, 10, 10]).reshape(K+1)
 Price = 10
 dmax = 2
-action_for_factory = [0, 3, 6]
-action_for_facilities = [0, 1, 2]
+action_for_factory = [0, 3, 6,10,15]
+action_for_facilities = [0, 1, 2,8,10]
 NUM_ACTIONS = len(action_for_factory) * len(action_for_facilities)**K
 
 K = 2
@@ -50,7 +52,7 @@ def index2tuple(x):
     return np.array(potential_actions[x])
 
 
-def epsilon_greedy(state_vector, theta, epsilon):
+def epsilon_greedy(state, theta, epsilon):
     """Returns an action selected by an epsilon-greedy exploration policy
 
     Args:
@@ -61,15 +63,19 @@ def epsilon_greedy(state_vector, theta, epsilon):
     Returns:
         (int, int): the indices describing the action/object to take
     """
-
+    state_vector = utils.extract_state_feature_vector(
+           state)
     explore = np.random.random_sample() < epsilon
 
     if explore:
-        action_index = np.random.randint(NUM_ACTIONS)
-        action_arr = index2tuple(action_index)
+        #must account for what we are allowed to do!
+        avail = available_action_indices(state[0])
+        avail_idx = np.argwhere(avail == 1).reshape(-1)
+        avail_choice = random.choice(avail_idx)
+        action_arr = index2tuple(avail_choice)
     else:
         action_arr = index2tuple(
-            np.argmax(theta @ state_vector))
+            np.argmax((theta @ state_vector)+availible_account_for(state)))
         #options = q_func[state_1, state_2, :, :]
         #action_index, object_index = np.unravel_index(
         #    options.argmax(), options.shape)
@@ -77,8 +83,14 @@ def epsilon_greedy(state_vector, theta, epsilon):
     return action_arr
 
 
-def linear_q_learning(theta, current_state_vector, action_arr,
-                      reward, next_state_vector, terminal):
+def available_action_indices(stock):
+  return(np.where(np.array(potential_actions)[:, 1:].sum(axis=1) <= stock[0], 1, 0))
+
+def availible_account_for(state):
+    return (1-available_action_indices(state[0]))*-BIGM
+
+def linear_q_learning(theta, current_state, action_arr,
+                      reward, next_state, terminal):
     """Update theta for a given transition
 
     Args:
@@ -92,8 +104,13 @@ def linear_q_learning(theta, current_state_vector, action_arr,
     Returns:
         None
     """
+    current_state_vector = utils.extract_state_feature_vector(
+           current_state)
+    next_state_vector = utils.extract_state_feature_vector(
+        next_state)
 
-    best_next = (theta @ next_state_vector).max()
+    #next_out_of_bounds = (1-available_action_indices(next_state[0]))*-BIGM
+    best_next = ((theta @ next_state_vector)+availible_account_for(next_state)).max()
     this_q = (theta @ current_state_vector)[
         tuple2index(action_arr)]
     neg_grad = (reward+(1-terminal)*GAMMA*best_next-this_q) * \
@@ -128,20 +145,19 @@ def run_episode(for_training):
 
     while not terminal:
         # Choose next action and execute
-        #current_state = current_room_desc + current_quest_desc
-        current_state_vector = utils.extract_state_feature_vector(
-            current_state)
+        #current_state_vector = utils.extract_state_feature_vector(
+         #   current_state)
 
         action_arr = epsilon_greedy(
-            current_state_vector, theta, epsilon)
+            current_state, theta, epsilon)
         (next_state,reward,terminal) = game.step_game(action_arr)
 
         if for_training:
             # update Q-function.
-            next_state_vector = utils.extract_state_feature_vector(
-                next_state)
-            linear_q_learning(theta, current_state_vector, action_arr,
-                               reward, next_state_vector, terminal)
+            #next_state_vector = utils.extract_state_feature_vector(
+            #    next_state)
+            linear_q_learning(theta, current_state, action_arr,
+                               reward, next_state, terminal)
 
         if not for_training:
             epi_reward += reward*GAMMA**t
