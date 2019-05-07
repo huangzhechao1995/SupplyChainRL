@@ -13,7 +13,7 @@ import pandas as pd
 
 class NewsVendorGame:
     
-    def __init__(self,K, Kpr, Kst, Kpe, Ktr, CWarehouse, CTruck, Price, dmax):
+    def __init__(self,K, Kpr, Kst, Kpe, Ktr, CWarehouse, CTruck, Price, dmax,t_steps=36):
         """
         K:      int, number of warehouses
         Kpr:    float,          unit product cost parameter
@@ -34,6 +34,7 @@ class NewsVendorGame:
         self.CTruck=CTruck
         self.Price=Price
         self.dmax= dmax
+        self.t_steps = t_steps
         
         assert len(self.CWarehouse)==self.K+1, "warehouse capacity, length is K+1"
         assert len(self.CTruck)==self.K+1, "truck capacity, length is K+1"
@@ -90,12 +91,12 @@ class NewsVendorGame:
         np.dot(self.Kst,np.maximum(stock,0)) + 
         self.Kpe*np.sum(np.minimum(stock[1:],0)) - 
         np.sum(self.Ktr[1:]* np.ceil(assignment[1:]/self.CTruck[1:])))
-        print(self.Price * np.sum(demand[1:]))
-        print(Kpr*assignment[0])
-        print(np.dot(self.Kst,np.maximum(stock,0)))
-        print(Kpe*np.sum(np.minimum(stock[1:],0)) )
-        print(np.sum(Ktr[1:]* np.ceil(assignment[1:]/self.CTruck[1:])))
-        print(r)
+        #print(self.Price * np.sum(demand[1:]))
+        #print(self.Kpr*assignment[0])
+        #print(np.dot(self.Kst,np.maximum(stock,0)))
+        #print(self.Kpe*np.sum(np.minimum(stock[1:],0)) )
+        #print(np.sum(self.Ktr[1:]* np.ceil(assignment[1:]/self.CTruck[1:])))
+        #print(r)
         return r
     
     
@@ -106,7 +107,8 @@ class NewsVendorGame:
         profit = self.reward(self.stock,self.d, assignment)
         self.stock = self.transition_stock(self.stock, self.d, assignment)
         self.t=self.t+1
-        return (self.stock, self.d, self.old_d), profit
+        terminal = self.t >= self.t_steps
+        return (self.stock, self.d, self.old_d), profit, terminal
 
     
     

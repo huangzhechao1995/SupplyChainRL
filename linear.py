@@ -1,5 +1,8 @@
+import itertools
 import sys
 sys.path.append("/Users/jonahadler/Desktop/code/SupplyChainRL/")
+import os
+os.chdir("/Users/jonahadler/Desktop/code/SupplyChainRL/")
 import utils
 import framework
 from tqdm import tqdm
@@ -10,7 +13,6 @@ import numpy as np
 
 DEBUG = False
 
-
 GAMMA = 0.5  # discounted factor
 TRAINING_EP = 0.5  # epsilon-greedy parameter for training
 TESTING_EP = 0.05  # epsilon-greedy parameter for testing
@@ -18,21 +20,34 @@ NUM_RUNS = 10
 NUM_EPOCHS = 1200
 NUM_EPIS_TRAIN = 25  # number of episodes for training at each epoch
 NUM_EPIS_TEST = 50  # number of episodes for testing
-ALPHA = 0.001  # learning rate for training
+ALPHA = 0.000001  # learning rate for training
 
-ACTIONS = []
-NUM_ACTIONS = len(ACTIONS)
+K = 2
+Kpr = 5
+Kst = np.array([0, 0, 0]).reshape(K+1)
+Kpe = 5
+Ktr = np.array([np.nan, 0, 0]).reshape(K+1)
+CWarehouse = np.array([20, 20, 20]).reshape(K+1)
+CTruck = np.array([np.nan, 10, 10]).reshape(K+1)
+Price = 10
+dmax = 2
+action_for_factory = [0, 3, 6]
+action_for_facilities = [0, 1, 2]
+NUM_ACTIONS = len(action_for_factory) * len(action_for_facilities)**K
+
+K = 2
+potential_actions = [[x[0]]+list(x[1]) for x in list(itertools.product(
+    action_for_factory, itertools.product(action_for_facilities, repeat=K)))]
+
+def tuple2index(L):
+    if type(L) is np.ndarray:
+        L = list(L)
+    return potential_actions.index(L)
+  
 
 
-
-def tuple2index(action_index, object_index):
-    """Converts a tuple (a,b) to an index c"""
-    return action_index * NUM_OBJECTS + object_index
-
-
-def index2tuple(index):
-    """Converts an index c to a tuple (a,b)"""
-    return index // NUM_OBJECTS, index % NUM_OBJECTS
+def index2tuple(x):
+    return np.array(potential_actions[x])
 
 
 def epsilon_greedy(state_vector, theta, epsilon):
@@ -51,19 +66,18 @@ def epsilon_greedy(state_vector, theta, epsilon):
 
     if explore:
         action_index = np.random.randint(NUM_ACTIONS)
-        object_index = np.random.randint(NUM_OBJECTS)
+        action_arr = index2tuple(action_index)
     else:
-
-        (action_index, object_index) = index2tuple(
+        action_arr = index2tuple(
             np.argmax(theta @ state_vector))
         #options = q_func[state_1, state_2, :, :]
         #action_index, object_index = np.unravel_index(
         #    options.argmax(), options.shape)
 
-    return (action_index, object_index)
+    return action_arr
 
 
-def linear_q_learning(theta, current_state_vector, action_index, object_index,
+def linear_q_learning(theta, current_state_vector, action_arr,
                       reward, next_state_vector, terminal):
     """Update theta for a given transition
 
@@ -71,7 +85,6 @@ def linear_q_learning(theta, current_state_vector, action_index, object_index,
         theta (np.ndarray): current weight matrix
         current_state_vector (np.ndarray): vector representation of current state
         action_index (int): index of the current action
-        object_index (int): index of the current object
         reward (float): the immediate reward the agent recieves from playing current command
         next_state_vector (np.ndarray): vector representation of next state
         terminal (bool): True if this epsiode is over
@@ -82,11 +95,11 @@ def linear_q_learning(theta, current_state_vector, action_index, object_index,
 
     best_next = (theta @ next_state_vector).max()
     this_q = (theta @ current_state_vector)[
-        tuple2index(action_index, object_index)]
+        tuple2index(action_arr)]
     neg_grad = (reward+(1-terminal)*GAMMA*best_next-this_q) * \
         current_state_vector
-    theta[tuple2index(action_index, object_index)] = theta[tuple2index(
-        action_index, object_index)] + ALPHA * neg_grad
+    theta[tuple2index(action_arr)] = theta[tuple2index(
+        action_arr)] + ALPHA * neg_grad
     return None
 
 
@@ -103,35 +116,38 @@ def run_episode(for_training):
     """
     epsilon = TRAINING_EP if for_training else TESTING_EP
     epi_reward = 0
-
-    (current_room_desc, current_quest_desc, terminal) = framework.newGame()
+    game = framework.NewsVendorGame(K, Kpr, Kst, Kpe, Ktr,
+                                    CWarehouse, CTruck, Price, dmax)
+    #load in initial state
+    (current_state, terminal) = (
+        game.stock, game.d, game.old_d) , False
 
     t = 0
 
+
+
     while not terminal:
         # Choose next action and execute
-        current_state = current_room_desc + current_quest_desc
-        current_state_vector = utils.extract_bow_feature_vector(
-            current_state, dictionary)
+        #current_state = current_room_desc + current_quest_desc
+        current_state_vector = utils.extract_state_feature_vector(
+            current_state)
 
-        (action_index, object_index) = epsilon_greedy(
+        action_arr = epsilon_greedy(
             current_state_vector, theta, epsilon)
-        (next_room_desc, next_quest_desc, reward, terminal) = framework.step_game(
-            current_room_desc, current_quest_desc, action_index, object_index)
+        (next_state,reward,terminal) = game.step_game(action_arr)
 
         if for_training:
             # update Q-function.
-            next_state = next_room_desc + next_quest_desc
-            next_state_vector = utils.extract_bow_feature_vector(
-                next_state, dictionary)
-            linear_q_learning(theta, current_state_vector, action_index,
-                              object_index, reward, next_state_vector, terminal)
+            next_state_vector = utils.extract_state_feature_vector(
+                next_state)
+            linear_q_learning(theta, current_state_vector, action_arr,
+                               reward, next_state_vector, terminal)
 
         if not for_training:
             epi_reward += reward*GAMMA**t
             t += 1
 
-        current_room_desc, current_quest_desc = next_room_desc, next_quest_desc
+        current_state= next_state
 
     if not for_training:
         return epi_reward
@@ -168,14 +184,20 @@ def run():
 
 if __name__ == '__main__':
     pass
-
+'''
 state_texts = utils.load_data('game.tsv')
 dictionary = utils.bag_of_words(state_texts)
-state_dim = len(dictionary)
-action_dim = NUM_ACTIONS * NUM_OBJECTS
+framework.load_game_data()
+'''
+
+state_dim = K*3+1
+action_dim = NUM_ACTIONS
 
 # set up the game
-framework.load_game_data()
+game = framework.NewsVendorGame(K, Kpr, Kst, Kpe, Ktr,
+                      CWarehouse, CTruck, Price, dmax)
+
+
 
 epoch_rewards_test = []  # shape NUM_RUNS * NUM_EPOCHS
 

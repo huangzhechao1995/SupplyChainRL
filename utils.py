@@ -79,3 +79,12 @@ def extract_bow_feature_vector(state_desc, dictionary):
             state_vector[dictionary[word]] += 1
 
     return state_vector
+
+
+def extract_state_feature_vector(state):
+    """
+    Inputs a string state description
+    returns vector rep of state
+    """
+
+    return np.concatenate([state[0],state[1][1:],state[2][1:]])
