@@ -15,7 +15,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import utils
 
-"""Linear QL agent"""
+
 
 
 DEBUG = False
@@ -27,7 +27,7 @@ NUM_RUNS = 10
 NUM_EPOCHS = 1200
 NUM_EPIS_TRAIN = 25  # number of episodes for training at each epoch
 NUM_EPIS_TEST = 50  # number of episodes for testing
-ALPHA = 0.000001  # learning rate for training
+ALPHA = 1e-3  # learning rate for training
 BIGM = 1e4
 
 K = 2
@@ -39,7 +39,7 @@ CWarehouse = np.array([20, 20, 20]).reshape(K+1)
 CTruck = np.array([np.nan, 10, 10]).reshape(K+1)
 Price = 10
 dmax = 2
-action_for_factory = [0, 3, 6, 15]
+action_for_factory = [0, 1,5]
 action_for_facilities = [0, 1, 2, 8]
 NUM_ACTIONS = len(action_for_factory) * len(action_for_facilities)**K
 
@@ -80,7 +80,7 @@ def epsilon_greedy(state, epsilon):
         with torch.no_grad():
             q_values_action = model(state_vector)
         maxq_next_vector = (
-            q_values_action + torch.tensor(available_account_for(state)))
+            q_values_action + available_account_for(state))
         action_index = np.argmax(maxq_next_vector).item()
         action_arr = index2tuple(action_index)
 
@@ -176,9 +176,12 @@ def run_episode(for_training):
         current_state_vector = torch.FloatTensor(
             utils.extract_state_feature_vector(current_state))
         
+        if current_state_vector[0]<0:
+            print("s")
         action_arr = epsilon_greedy(
             current_state, epsilon)
         (next_state, reward, terminal) = game.step_game(action_arr)
+
 
         if for_training:
             # update Q-function.

@@ -21,7 +21,7 @@ NUM_RUNS = 10
 NUM_EPOCHS = 1200
 NUM_EPIS_TRAIN = 25  # number of episodes for training at each epoch
 NUM_EPIS_TEST = 50  # number of episodes for testing
-ALPHA = 0.000001  # learning rate for training
+ALPHA = 1e-2  # learning rate for training
 BIGM=1e4
 
 K = 2
