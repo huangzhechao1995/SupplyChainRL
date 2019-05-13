@@ -27,20 +27,20 @@ NUM_RUNS = 10
 NUM_EPOCHS = 1200
 NUM_EPIS_TRAIN = 25  # number of episodes for training at each epoch
 NUM_EPIS_TEST = 50  # number of episodes for testing
-ALPHA = 1e-3  # learning rate for training
-BIGM = 1e4
+ALPHA = 1e-2  # learning rate for training
+BIGM = 1e8
 
 K = 2
-Kpr = 5
+Kpr = 0
 Kst = np.array([0, 0, 0]).reshape(K+1)
-Kpe = 5
+Kpe = 10
 Ktr = np.array([np.nan, 0, 0]).reshape(K+1)
-CWarehouse = np.array([20, 20, 20]).reshape(K+1)
-CTruck = np.array([np.nan, 10, 10]).reshape(K+1)
+CWarehouse = np.array([100, 50, 50]).reshape(K+1)
+CTruck = np.array([np.nan, 50, 50]).reshape(K+1)
 Price = 10
-dmax = 2
-action_for_factory = [0, 1,5]
-action_for_facilities = [0, 1, 2, 8]
+dmax = 10
+action_for_factory = [0, 20, 80]
+action_for_facilities = [0, 20, 50]
 NUM_ACTIONS = len(action_for_factory) * len(action_for_facilities)**K
 
 potential_actions = [[x[0]]+list(x[1]) for x in list(itertools.product(
@@ -144,6 +144,7 @@ def deep_q_learning(current_state, action_arr, reward,
 
     optimizer.zero_grad()
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 10000)
     optimizer.step()
 
 
@@ -176,22 +177,15 @@ def run_episode(for_training):
         current_state_vector = torch.FloatTensor(
             utils.extract_state_feature_vector(current_state))
         
-        if current_state_vector[0]<0:
-            print("s")
+
         action_arr = epsilon_greedy(
             current_state, epsilon)
         (next_state, reward, terminal) = game.step_game(action_arr)
 
-
         if for_training:
             # update Q-function.
-            #next_state_vector = utils.extract_state_feature_vector(
-            #    next_state)
-            current_state_vector = torch.FloatTensor(
-                utils.extract_state_feature_vector(current_state))
-            next_state_vector = torch.FloatTensor(
-                utils.extract_state_feature_vector(next_state))
-            deep_q_learning(current_state, action_arr,
+
+          deep_q_learning(current_state, action_arr,
                             reward, next_state, terminal)
 
         if not for_training:
