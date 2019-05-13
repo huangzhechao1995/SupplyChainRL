@@ -15,8 +15,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import utils
 
-
-"deep q"
+#"deep q"
 
 DEBUG = False
 
